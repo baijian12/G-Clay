@@ -1024,7 +1024,7 @@ void ECBackend::handle_sub_read(
              m += sinfo.get_chunk_size()) {
           int io_thre = ec_impl->get_myclay_io_threshold();
           auto& subchunks_ind = op.subchunks.find(i->first)->second;
-          if (subchunks_ind.size() <= size_t(io_thre)) { // io数小，碎片读, 不变
+          if (subchunks_ind.size() <= size_t(io_thre)) { 
             dout(0)<<"ErasureCodeMyClay: handle_sub_read() FRAGMENTED store->read() of "<<subchunks_ind.size()<<dendl;
             for (auto &&k:op.subchunks.find(i->first)->second) {
               bufferlist bl0;
@@ -1040,7 +1040,7 @@ void ECBackend::handle_sub_read(
               }
               bl.claim_append(bl0);
             }
-          } else { // io数大，读整块
+          } else {
           dout(0)<<"ErasureCodeMyClay: handle_sub_read() FRAGMENTED store->read() of 1"<<dendl;
             bufferlist bl00, bl_tmp;
             r = store->read(

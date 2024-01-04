@@ -7,9 +7,7 @@
 #include "util.h"
 using namespace std;
 /*
-> 分析编码时间和读时间：
-阶段1：第一个"encode_chunks invoked" 到最后一个 "encode_chunks done", 编码时间 (中间延迟代表块发送到其他osd)
-阶段2：第一个"store->read" 到最后一个 "full-object read done"
+analyze encode and read time
 */
 
 #define REPAIR_NO 10
@@ -58,7 +56,7 @@ int main(int argc, char* argv[]) {
         printf("%.3f - Sum of    %25s\n", sum, argv[i]);
     }
     
-    if (argc == 2) {    // 单个输出：方便脚本统计
+    if (argc == 2) {   
         cout<<"-----------------"<<endl;
         printf("%.3f,%.3f\n", infos[1].d1, infos[1].d2);
     }

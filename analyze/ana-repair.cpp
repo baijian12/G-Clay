@@ -7,10 +7,7 @@
 #include "util.h"
 using namespace std;
 /*
-> 处理 jerasure.log clay.log myclay.log，从中提取出每一阶段的时间
-阶段1：第一个 "store->read" 到最后一个 "read done", 读盘时间
-阶段2：最后一个 "read done" 到第一个 "decode invoked", 网络传输等待时间
-阶段3：第一个 "decode invoked" 到最后一个 "decode done", 解码计算时间
+parse jerasure.log clay.log myclay.log，derive time of each stage
 */
 
 #define REPAIR_NO 10
@@ -64,7 +61,7 @@ int main(int argc, char* argv[]) {
         printf("%.3f - Sum of       %15s (REPAIR=%s)\n", sum, argv[i], want_to_read[i].c_str());
     }
     
-    if (argc == 2) {    // 单个输出：方便脚本统计
+    if (argc == 2) {  
         cout<<"-----------------"<<endl;
         printf("%.3f,%.3f,%.3f\n", infos[1].d1, infos[1].d2, infos[1].d3);
     }
@@ -80,7 +77,6 @@ void parse(const string& text, int idx) {
     auto begin = text.cbegin(); // must be const
     auto end = text.cend();
 
-    // 1错: want_to_read: 6, available | 2错: want_to_read: 2,6, available
     pattern = string("want_to_read: ([0-9]{1,2}|[0-9]{1,2},[0-9]{1,2}), available");
     regex_search(begin, end, m, regex(pattern));
     want_to_read[idx] = m[1];
@@ -92,7 +88,7 @@ void parse(const string& text, int idx) {
         regex_search(begin, end, m, regex(pattern));
         readtime.push_back(m[1]);
         donetime.push_back(m[2]);
-        begin += m.position(3); // m.position() 相对于 begin
+        begin += m.position(3); 
     }
     infos[idx].d1 = timediff(donetime.back(), readtime.front());
     

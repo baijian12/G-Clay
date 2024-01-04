@@ -25,10 +25,10 @@ static int pow_int(int a, int x) {
 class Perm {
 public:
     int k, m;
-    int q, t, a; // q^t 子分组级别
-    std::vector<int> seq_order; // 默认排列，0,1,2,3... 
+    int q, t, a; 
+    std::vector<int> seq_order; 
     std::vector<int> order;
-    std::vector<int> z_vec; // z 对应的坐标
+    std::vector<int> z_vec;
 
     Perm(int k, int m) : k(k), m(m) {
         assert((k+m)%m == 0);
@@ -40,21 +40,18 @@ public:
         z_vec.resize(t);
     }
 
-    // 子块下标z -> 坐标z_vec
     void get_plane_vector(int z) {
         for (int i = 0; i < t; i++) {
             z_vec[t-1-i] = z % q;
             z = (z - z_vec[t-1-i]) / q;
         }
     }
-    // 检查 x==zy 
     bool check_z(int z, int node) {
         int x = node%q;
         int y = node/q;
         get_plane_vector(z);
         return x==z_vec[y];
     }
-    // 对于子块排列v，当node节点故障时，需要读取的IO次数
     int calc_node_io(const vector<int>& v, int node) {
         int node_io=0;
         int i=0;
@@ -98,7 +95,6 @@ public:
         cout<<"All-IO: "<<allnode_io<<endl;
     }
 
-    // 显示 seq_order 和当前 order 的IO区别
     void show_diff_io(const vector<int>& order) {
         printf("------------ %-15s ------------\n", __func__);
         // cout<<"Seq-Order: ";
@@ -120,7 +116,6 @@ public:
         printf("All-IO: %d -> %d, reduce ratio: %.3f%%\n", allnode_io_seq, allnode_io, double(allnode_io_seq-allnode_io)/allnode_io_seq*100);
     }
 
-    // a较小，遍历 a! 种排列
     void find_minio() {
         printf("------------ %-15s ------------\n", __func__);
         vector<int> order = seq_order;
@@ -128,7 +123,7 @@ public:
         int allperms=0, minperms=0;
         do {
             min_allnode_io = min(min_allnode_io, calc_allnode_io(order));
-        } while (next_permutation(order.begin(), order.end())); // 最后将v还原为 {0,1,2,3...}
+        } while (next_permutation(order.begin(), order.end())); 
         do {
             if (calc_allnode_io(order)==min_allnode_io) {
                 prt_vector(order)<<' ';
@@ -144,7 +139,6 @@ public:
         printf(">>> allperms: %d, minperms: %d, min-All-IO: %d\n", allperms, minperms, min_allnode_io);
     }
 
-    // a较大，随机shuffle
     void try_minio(int iterations) {
         printf("------------ %-15s ------------\n", __func__);
         vector<int> order = seq_order;
@@ -152,7 +146,7 @@ public:
         default_random_engine en(rd());
 
         auto start = chrono::steady_clock::now(); 
-        int min_allnode_io = a*2-2; // 顺序的IO次数
+        int min_allnode_io = a*2-2; 
         int min_cnt = 0;
         vector<int> vmin;
         printf("> k=%d, m=%d, a=%d, seq_io=%d, Iteration times: %d\n", k, m, a, min_allnode_io, iterations);
@@ -169,13 +163,8 @@ public:
                 printf("Again %d for %dth\n", min_allnode_io, min_cnt);
             }
         }
-        // prt_vector(vmin)<<endl;
-        // for (int node=0; node<k+m; node++) {
-        //     printf("%2d (%d,%d)  IO: %d\n", node, node%q, node/q, calc_node_io(vmin, node));
-        // }
     }
 
-    // 显示映射关系
     void show_couple_m2() {
         auto pow = [](int a, int x) -> int {
             int out=1;
@@ -200,7 +189,6 @@ public:
         }
     }
 
-    // 得到 minimum_to_decode 的 vector<pair<int,int>>
     void get_repair_subchunks(const int &lost_node, vector<pair<int, int>> &repair_sub_chunks_ind, string mymode)
     {
         const int y_lost = lost_node / q;
@@ -216,8 +204,7 @@ public:
         }
         
         if (mymode == "myclay") {
-            // 子块需要转换 {0,1,3,2,6,4,5,7}  // {{0,1},{2,1},{4,1}{6,1}} IO=4
-            vector<pair<int, int>> out; // -> {{0,1},{3,3}} IO=2
+            vector<pair<int, int>> out;
             set<int> to_read;
             for (auto& p:repair_sub_chunks_ind) {
                 for (int i=0; i<p.second; i++) to_read.insert(p.first+i);

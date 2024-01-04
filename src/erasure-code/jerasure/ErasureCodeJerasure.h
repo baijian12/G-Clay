@@ -32,7 +32,7 @@ public:
   std::string rule_root;
   std::string rule_failure_domain;
   bool per_chunk_alignment;
-  std::string jlog; // 增加
+  std::string jlog; // add
 
   explicit ErasureCodeJerasure(const char *_technique) :
     k(0),

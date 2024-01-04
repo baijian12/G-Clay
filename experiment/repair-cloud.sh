@@ -11,7 +11,7 @@ if [[ $1 == "-h" ]] || [[ $# -eq 0 ]]; then
     exit 0
 fi
 
-STRIPE_UNIT=$(($1*1024)) # 更改：M 改为 K
+STRIPE_UNIT=$(($1*1024))
 MODE=$2
 OSD_IDX=$3
 if [[ -n $4 ]]; then 
@@ -22,14 +22,14 @@ if [[ -n $OSD_IDX2 ]] && [[ $OSD_IDX2 -eq 0 ]]; then echo "xx OSD NOT be Primary
 CEPH_ID=$(cat /etc/ceph/ceph.conf |grep fsid|cut -d' ' -f3)
 echo ">> CEPH_ID: $CEPH_ID"
 
-# 清日志
+# clean journal
 echo ">> cleaning journalctl log..."
 for i in {1..18}; do 
     REMOTE=`printf "machine%03d" $i`
-    sshpass -p "Cloud2022" ssh root@$REMOTE "journalctl --rotate  && journalctl --vacuum-size=1K &>/dev/null"
+    sshpass -p "Cloud2023" ssh root@$REMOTE "journalctl --rotate  && journalctl --vacuum-size=1K &>/dev/null"
 done
 
-# 创建池
+# create pool
 echo "ceph osd pool rm claypool claypool --yes-i-really-really-mean-it" > help.sh
 if [[ $MODE == "jerasure" ]]; then
     echo "ceph osd erasure-code-profile set clay_16_2 plugin=jerasure technique=reed_sol_van k=16 m=2 crush-failure-domain=osd stripe_unit=$STRIPE_UNIT --force" >> help.sh
@@ -42,11 +42,11 @@ else
     exit 2
 fi
 echo "ceph osd pool create claypool 1 1 erasure clay_16_2" >> help.sh
-echo "ceph osd pool set claypool min_size 16" >> help.sh     # cloud 需要改为 16
+echo "ceph osd pool set claypool min_size 16" >> help.sh 
 sudo cephadm shell -m help.sh:/help.sh -- bash help.sh
 echo ">> sleep 3..." && sleep 3
 
-# 提取本次的PG
+# parse PG
 PGMAP=`sudo cephadm shell -- ceph pg dump pgs_brief | awk 'NR>1 && length($3)>12 {print $3}'`
 if [[ -z $PGMAP ]]; then
     echo ">> PGMAP empty. wait..." && sleep 3
@@ -58,38 +58,38 @@ if [[ -n $OSD_IDX2 ]]; then OSD2=`echo $PGMAP | cut -d, -f$(($OSD_IDX2+1))`; fi
 echo ">> PGMAP: $PGMAP, IDX-$OSD_IDX -> OSD-$OSD"
 if [[ -n $OSD_IDX2 ]]; then echo "IDX-$OSD_IDX2 -> OSD-$OSD2"; fi
 
-# 停osd
+# stop osds
 HOST=`sudo cephadm shell -- ceph osd find $OSD | grep -m1 -Po '"host": "\K[^"]+'`
 echo ">> stopping osd.$OSD on host.$HOST"
-sshpass -p Cloud2022 ssh root@$HOST "systemctl stop ceph-$CEPH_ID@osd.$OSD"
+sshpass -p Cloud2023 ssh root@$HOST "systemctl stop ceph-$CEPH_ID@osd.$OSD"
 if [[ -n $OSD_IDX2 ]]; then 
     HOST2=`sudo cephadm shell -- ceph osd find $OSD2 | grep -m1 -Po '"host": "\K[^"]+'`
     echo ">> stopping osd.$OSD2 on host.$HOST2"
-    sshpass -p Cloud2022 ssh root@$HOST2 "systemctl stop ceph-$CEPH_ID@osd.$OSD2"
+    sshpass -p Cloud2023 ssh root@$HOST2 "systemctl stop ceph-$CEPH_ID@osd.$OSD2"
 fi 
 
-# 写数据
-echo "dd if=/dev/urandom of=infile bs=$STRIPE_UNIT count=16" > help.sh   # 必须使用"", $STRIPE_UNIT需要扩展
-echo 'for i in {0..9}; do rados -p claypool put NYAN$i infile && echo $i; done' >> help.sh  # 必须使用'', 避免$i扩展
+# write
+echo "dd if=/dev/urandom of=infile bs=$STRIPE_UNIT count=16" > help.sh
+echo 'for i in {0..999}; do rados -p claypool put NYAN$i infile && echo $i; done' >> help.sh 
 sudo cephadm shell -m help.sh:/help.sh -- bash help.sh
 echo ">> sleep 3..." && sleep 3
 
-# 启动osd
+# start osds
 echo ">> starting osd.$OSD on host.$HOST"
-sshpass -p Cloud2022 ssh root@$HOST "systemctl start ceph-$CEPH_ID@osd.$OSD"
+sshpass -p Cloud2023 ssh root@$HOST "systemctl start ceph-$CEPH_ID@osd.$OSD"
 if [[ -n $OSD_IDX2 ]]; then 
     echo ">> starting osd.$OSD2 on host.$HOST2"
-    sshpass -p Cloud2022 ssh root@$HOST2 "systemctl start ceph-$CEPH_ID@osd.$OSD2"
+    sshpass -p Cloud2023 ssh root@$HOST2 "systemctl start ceph-$CEPH_ID@osd.$OSD2"
 fi 
 
-# 等待修复完成 (由于device_health_metrics，可能判定 1 active+clean || 2 active+clean)
+# wait repair
 echo 'PG_NO=`rados lspools | wc -l`' > help.sh
 echo 'FINISH="$PG_NO active+clean"' >> help.sh
 echo 'PGSTAT=""' >> help.sh
 echo 'while ! echo $PGSTAT | grep -q "$FINISH"; do echo "wait for repair..." && sleep 3;  PGSTAT=`ceph pg stat`; done' >> help.sh 
 sudo cephadm shell -m help.sh:/help.sh -- bash help.sh
 
-# 得到日志
+# journal
 PRIMARY=`echo $PGMAP | cut -d, -f1`
 PRIMARY_HOST=`sudo cephadm shell -- ceph osd find $PRIMARY | grep -m1 -Po '"host": "\K[^"]+'`
 echo ">> getting log from osd.$PRIMARY on host.$PRIMARY_HOST"
@@ -98,5 +98,5 @@ if [[ -n $OSD_IDX2 ]]; then
 else 
     SUFFIX=1
 fi
-sshpass -p Cloud2022 ssh root@$PRIMARY_HOST "journalctl -u ceph-$CEPH_ID@osd.$PRIMARY | grep ErasureCodeMyClay > $MODE$SUFFIX.log"
-sshpass -p Cloud2022 scp root@$PRIMARY_HOST:$MODE$SUFFIX.log .  # 将PRIMARY_HOST上的日志传到本机(machine001)
+sshpass -p Cloud2023 ssh root@$PRIMARY_HOST "journalctl -u ceph-$CEPH_ID@osd.$PRIMARY | grep ErasureCodeMyClay > $MODE$SUFFIX.log"
+sshpass -p Cloud2023 scp root@$PRIMARY_HOST:$MODE$SUFFIX.log . 

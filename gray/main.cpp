@@ -4,26 +4,14 @@
 #include "Perm.h"
 using namespace std;
 
-/**
- * 计算阶乘 a!
-*/
 uint64_t fact(int a) {
     uint64_t r=1;
     for (int i=1; i<=a; i++) r*=i;
     return r;
 }
 
-/**
- * 根据 from 和其当前方案 solutions_from, 得到下一个配置 Perm(from.k+2, 2) 的方案
- * @param from: from.m==2, (from.k+from.m) % from.m == 0
-*/
 vector<vector<int>> get_next_solutions_m2(const Perm& from, const vector<vector<int>>& solutions_from);
-/**
- * 缩减 solutions 的数量，避免指数爆炸。对于z对应的nz个方案只要前trim_nz个。效率较慢
- * @param a: 子块数量
- * @param solutions: 当前方案, 直接修改该变量
- * @param trim_a: 缩减后以单个z开头的方案数
-*/
+
 void trim_solutions(int a, vector<vector<int>>& solutions, int trim_nz);
 
 int main() {
@@ -50,7 +38,7 @@ int main() {
     printf("k=%-2d m=%d, All-IO: %4d -> %-4d\n", perm_6.k, perm_6.m, perm_6.calc_allnode_io(perm_6.seq_order), perm_6.calc_allnode_io(st_6[0]));
 
     const int TRIM_NZ = 32;
-    st_8 = get_next_solutions_m2(perm_6, st_6); // (8,2) a=32 size=8192, 每个z 256个 需要减少为 32个, size=1024(trimmed)
+    st_8 = get_next_solutions_m2(perm_6, st_6); // (8,2) a=32 size=8192, size=1024(trimmed)
     printf("k=%-2d m=%d, All-IO: %4d -> %-4d\n", perm_8.k, perm_8.m, perm_8.calc_allnode_io(perm_8.seq_order), perm_8.calc_allnode_io(st_8[0]));
     trim_solutions(perm_8.a, st_8, TRIM_NZ);
     
@@ -66,7 +54,7 @@ int main() {
     printf("k=%-2d m=%d, All-IO: %4d -> %-4d\n", perm_14.k, perm_14.m, perm_14.calc_allnode_io(perm_14.seq_order), perm_14.calc_allnode_io(st_14[0]));
     trim_solutions(perm_14.a, st_14, TRIM_NZ);
 
-    st_16 = get_next_solutions_m2(perm_14, st_14); // (16,2) a=512 size=524288(trimmed, 本次不trim, 占用1G内存) 每个z 1024个
+    st_16 = get_next_solutions_m2(perm_14, st_14); // (16,2) a=512 size=524288
     printf("k=%-2d m=%d, All-IO: %4d -> %-4d\n", perm_16.k, perm_16.m, perm_16.calc_allnode_io(perm_16.seq_order), perm_16.calc_allnode_io(st_16[0]));
 
     printf("--------- st_16 trimmed size: %ld ----------\n", st_16.size());
@@ -126,7 +114,6 @@ vector<vector<int>> get_next_solutions_m2(const Perm& from, const vector<vector<
             order_next.resize(a);
         }
     }
-    // 对称
     int sz = solutions_next.size();
     for (int i=sz-1; i>=0; i--) {
         solutions_next.push_back(symmetryv(solutions_next[i], 2*a-1));

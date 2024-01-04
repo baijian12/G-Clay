@@ -29,12 +29,10 @@ public:
   int k = 0, m = 0, d = 0, w = 8;
   int q = 0, t = 0, nu = 0;
   int sub_chunk_no = 0;
-  // vector<int> order[sub_chunk_no] 表示应存入磁盘的子块顺序
   std::vector<int> order; 
-  // order_ind[z] 是z在order的坐标，也是z在实际存储块的坐标
   std::vector<int> order_ind;
-  std::string mymode;  // 默认：clay
-  int io_thre; // io阈值, 默认256, io数<=阈值，正常读碎片，否则整块（不使用此功能）
+  std::string mymode;
+  int io_thre;
 
   std::map<int, ceph::bufferlist> U_buf;
 
@@ -52,11 +50,9 @@ public:
 
   ~ErasureCodeMyClay() override;
 
-  // 增加
   int get_myclay_io_threshold() const override {
     return io_thre;
   }
-  // 增加
   std::vector<int> get_myclay_order() const override {
     if (mymode=="myclay") {
       return order;

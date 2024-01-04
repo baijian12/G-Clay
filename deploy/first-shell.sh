@@ -1,5 +1,4 @@
 # sudo cephadm shell -m first-shell.sh:/first-shell.sh
-# shell内运行：./first-shell.sh
 
 for i in {2..18}; do 
     REMOTE=`printf "machine%03d" $i`

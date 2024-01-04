@@ -5036,7 +5036,6 @@ struct FillInVerifyExtent : public Context {
     *r = len;
     *rval = 0;
 
-    // 完整读：myclay需要重排序。more: 多线程，以及放到每个OSD重排序
     ECBackend* ecbackend = dynamic_cast<ECBackend*>(pgbackend);
     if (ecbackend != nullptr) {
       ErasureCodeInterfaceRef &ec_impl = ecbackend->ec_impl;
@@ -5045,7 +5044,7 @@ struct FillInVerifyExtent : public Context {
         osd->clog->error() << "ErasureCodeMyClay: myclay full-object read need reorder";
         int k = ec_impl->get_data_chunk_count();
         int sc_count = ec_impl->get_sub_chunk_count();
-        int stripe_sz = outdatap->length(); // 扩展：一个对象有多个条带？暂时按一个对象一个条带
+        int stripe_sz = outdatap->length(); 
         int chunk_sz = stripe_sz/k;
         int subchunk_sz = chunk_sz/sc_count;
         char* tmp_buf = (char*)malloc(chunk_sz);
@@ -5532,7 +5531,7 @@ int PrimaryLogPG::do_read(OpContext *ctx, OSDOp& osd_op) {
     if (oi.is_data_digest() && op.extent.offset == 0 &&
         op.extent.length >= oi.size)
       maybe_crc = oi.data_digest;
-    // 正常读调用处。异步读，真正读取完成发生在 FillInVerifyExtent::finish
+    // (clay) read invoke，next to FillInVerifyExtent::finish
     ctx->pending_async_reads.push_back(
       make_pair(
         boost::make_tuple(op.extent.offset, op.extent.length, op.flags),

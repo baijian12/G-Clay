@@ -42,7 +42,6 @@ done
 
 
 sudo cephadm bootstrap --mon-ip 192.168.5.42  # 192.168 / 172.19
-# 记录dashboard
 
 for i in {1..18}; do 
     REMOTE=`printf "machine%03d" $i`

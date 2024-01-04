@@ -52,11 +52,10 @@ All-IO: 1364 -> 1028, reduce ratio: 24.633%
 
 vector<int> to_plain(int value);
 bool check_gray(vector<int>& order);
-const int BASE = 3; // 3 或 4
+const int BASE = 3;
 const int DIGITS = 4;
 
 int main() {
-    // BRGC 生成 BASE 进制格雷码
     vector<int> order;
     for (int i=0; i<BASE; i++) {
         order.push_back(i);
@@ -65,7 +64,6 @@ int main() {
     while (cur<DIGITS) {
         a *= BASE;
         vector<int> next;
-        // 0+order正，1+order反，2+order正。。
         bool flag = true;
         for (int i=0; i<BASE; i++) {
             if (flag) {

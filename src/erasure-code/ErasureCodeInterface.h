@@ -460,18 +460,10 @@ namespace ceph {
     virtual int decode_concat(const std::map<int, bufferlist> &chunks,
 			      bufferlist *decoded) = 0;
 
-    /** 
-     * 返回io阈值，用于 handle_sub_read() 的 fragmented read
-     * io数<=阈值，正常读io数的碎片。io数>阈值，直接读整块 (不使用此功能)
-    */
     virtual int get_myclay_io_threshold() const {
       return 0;
     }
 
-    /**
-     * 用于 PrimaryLogPG.cc 中的正常读重排序
-     * 除myclay，其他都返回空
-    */
     virtual std::vector<int> get_myclay_order() const {
       return {};
     }

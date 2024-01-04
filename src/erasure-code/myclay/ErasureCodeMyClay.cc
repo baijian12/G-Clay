@@ -198,7 +198,6 @@ int ErasureCodeMyClay::decode(const set<int> &want_to_read,
 
 void p(const set<int> &s) { cerr << s; } // for gdb
 
-// hexmode: true十六进制，false直接输出字符
 string myclay_str_to_string(const char* str, int len, bool hexmode) {
   stringstream ss;
   if (hexmode) {
@@ -222,7 +221,7 @@ int ErasureCodeMyClay::encode_chunks(const set<int> &want_to_encode,
 				   map<int, bufferlist> *encoded)
 {
   // log
-  dout(0) << "encode_chunks invoked" << dendl; // 增加
+  dout(0) << "encode_chunks invoked" << dendl;
 
   if (MYCLAY_DEBUG_CHUNK) {
     dout(0) << "Before encode:"<<dendl;
@@ -254,7 +253,6 @@ int ErasureCodeMyClay::encode_chunks(const set<int> &want_to_encode,
     int sub_chunk_size = chunk_size / sub_chunk_no;
     char* tmp_buf = (char*)malloc(chunk_size);
     for (int chk=0; chk<k; chk++) {
-      // 直接操作 c_str()
       char* orig_buf = (*encoded)[chk].c_str();
       memcpy(tmp_buf, orig_buf, chunk_size);
       for (int i=0; i<sub_chunk_no; i++) {
@@ -290,7 +288,6 @@ int ErasureCodeMyClay::encode_chunks(const set<int> &want_to_encode,
   return res;
 }
 
-// 实际完成多块解码
 int ErasureCodeMyClay::decode_chunks(const set<int> &want_to_read,
 				   const map<int, bufferlist> &chunks,
 				   map<int, bufferlist> *decoded)
@@ -312,7 +309,6 @@ int ErasureCodeMyClay::decode_chunks(const set<int> &want_to_read,
     buf.zero();
     coded_chunks[i].push_back(std::move(buf));
   }
-  // 传入：erasures 同 want_to_read，coded_chunks 同 decoded (nu==0)
   int res = decode_layered(erasures, &coded_chunks);
   for (int i = k; i < k+nu; i++) {
     coded_chunks[i].clear();
@@ -332,7 +328,6 @@ int ErasureCodeMyClay::parse(ErasureCodeProfile &profile,
 
   err |= to_int("d", profile, &d, std::to_string(k+m-1), ss);
 
-  // 增加
   mds.profile["jlog"] = "false";
   pft.profile["jlog"] = "false";
   err |= to_string("mymode", profile, &mymode, "clay", ss);
@@ -437,7 +432,7 @@ int ErasureCodeMyClay::parse(ErasureCodeProfile &profile,
   sub_chunk_no = pow_int(q, t);
 
   dout(0) << __func__
-	   << " (q,t,nu)=(" << q << "," << t << "," << nu <<")" << dendl; // 原：dout(10)
+	   << " (q,t,nu)=(" << q << "," << t << "," << nu <<")" << dendl; 
 
   return err;
 }
@@ -625,11 +620,6 @@ int ErasureCodeMyClay::repair_one_lost_chunk(map<int, bufferlist> &recovered_dat
 					   int repair_blocksize,
 					   vector<pair<int,int>> &repair_sub_chunks_ind)
 {
-  // printf("repair_sub_chunks_ind: ");
-  // for (auto p:repair_sub_chunks_ind) {
-  //   // printf("%d,%d ", p.first, p.second);
-  // }
-  // printf("\n");
   unsigned repair_subchunks = (unsigned)sub_chunk_no / q;
   unsigned sub_chunksize = repair_blocksize / repair_subchunks;
 
@@ -760,7 +750,6 @@ int ErasureCodeMyClay::repair_one_lost_chunk(map<int, bufferlist> &recovered_dat
       ceph_assert(erasures.size() <= (unsigned)m);
       decode_uncoupled(erasures, z, sub_chunksize);
 
-      // 求C
       for (auto i : erasures) {
 	int x = i % q;
 	int y = i / q;
@@ -878,7 +867,6 @@ int ErasureCodeMyClay::decode_layered(set<int> &erased_chunks,
 	  } else {
 	    char* C = (*chunks)[node_xy].c_str();
             char* U = U_buf[node_xy].c_str();
-            // memcpy(&C[z*sc_size], &U[z*sc_size], sc_size); 改变目的C
             memcpy(&C[order_ind[z]*sc_size], &U[z*sc_size], sc_size);
           }
         }
@@ -896,7 +884,6 @@ int ErasureCodeMyClay::decode_erasures(const set<int>& erased_chunks, int z,
   int z_vec[t];
 
   get_plane_vector(z, z_vec);
-  // printf("decode_erasures invoked. z: %d, z_vec:[", z); for(auto i:z_vec) {printf("%d,",i);} printf("]\n");
 
   for (int x = 0; x < q; x++) {
     for (int y = 0; y < t; y++) {
@@ -951,7 +938,7 @@ void ErasureCodeMyClay::set_planes_sequential_decoding_order(int* order, set<int
     get_plane_vector(z,z_vec);
     order[z] = 0;
     for (auto i : erasures) {
-      if (i % q == z_vec[i / q]) { // x==zy, 红色，无配对
+      if (i % q == z_vec[i / q]) { // x==zy, uncoupled
 	order[z] = order[z] + 1;
       }
     }
@@ -982,11 +969,9 @@ void ErasureCodeMyClay::recover_type1_erasure(map<int, bufferlist>* chunks,
   }
 
   erased_chunks.insert(i0);
-  // pftsubchunks[i0].substr_of((*chunks)[node_xy], z * sc_size, sc_size); 改变目的C
   pftsubchunks[i0].substr_of((*chunks)[node_xy], order_ind[z] * sc_size, sc_size);
-  // known_subchunks[i1].substr_of((*chunks)[node_sw], z_sw * sc_size, sc_size); 改变来源C
   known_subchunks[i1].substr_of((*chunks)[node_sw], order_ind[z_sw] * sc_size, sc_size);
-  known_subchunks[i2].substr_of(U_buf[node_xy], z * sc_size, sc_size); // 无需变，因为U顺序一样
+  known_subchunks[i2].substr_of(U_buf[node_xy], z * sc_size, sc_size);
   pftsubchunks[i1] = known_subchunks[i1];
   pftsubchunks[i2] = known_subchunks[i2];
   pftsubchunks[i3].push_back(ptr);
@@ -1015,8 +1000,6 @@ void ErasureCodeMyClay::get_coupled_from_uncoupled(map<int, bufferlist>* chunks,
   uncoupled_subchunks[3].substr_of(U_buf[node_sw], z_sw * sc_size, sc_size);
 
   map<int, bufferlist> pftsubchunks;
-  // pftsubchunks[0].substr_of((*chunks)[node_xy], z * sc_size, sc_size);
-  // pftsubchunks[1].substr_of((*chunks)[node_sw], z_sw * sc_size, sc_size); 改变目的C
   pftsubchunks[0].substr_of((*chunks)[node_xy], order_ind[z] * sc_size, sc_size);
   pftsubchunks[1].substr_of((*chunks)[node_sw], order_ind[z_sw] * sc_size, sc_size);
   pftsubchunks[2] = uncoupled_subchunks[2];
@@ -1041,7 +1024,7 @@ void ErasureCodeMyClay::get_uncoupled_from_coupled(map<int, bufferlist>* chunks,
   int z_sw = z + (x - z_vec[y]) * pow_int(q,t-1-y); // pair z
 
   int i0 = 0, i1 = 1, i2 = 2, i3 = 3;
-  if (z_vec[y] > x) { // if pair z 更小
+  if (z_vec[y] > x) {
     i0 = 1;
     i1 = 0;
     i2 = 3;
